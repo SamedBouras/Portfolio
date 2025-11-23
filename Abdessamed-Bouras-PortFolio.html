@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A.BOURAS | Architecture & Sécurité</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Three.js for 3D Globe -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <!-- Markdown Parser (for assistant responses) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        term: {
+                            bg: '#050505',
+                            card: '#0a0f14',
+                            green: '#00ff41',
+                            dim: 'rgba(0, 255, 65, 0.1)',
+                            alert: '#ff3333',
+                            cyan: '#00f3ff',
+                            gold: '#ffd700'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                        tech: ['"Share Tech Mono"', 'monospace'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                        'blink-cursor': 'blink-cursor 0.75s step-end infinite',
+                    },
+                    keyframes: {
+                        glow: {
+                            '0%': { boxShadow: '0 0 5px #ffd700' },
+                            '100%': { boxShadow: '0 0 20px #ffd700, 0 0 10px #ffd700' }
+                        },
+                        'blink-cursor': {
+                            '0%, 100%': { borderRightColor: 'transparent' },
+                            '50%': { borderRightColor: '#00ff41' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { margin: 0; background-color: #050505; color: #e0e0e0; overflow-x: hidden; }
+        
+        /* Scanline Overlay */
+        .scanlines {
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 6px 100%;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 40;
+            opacity: 0.6;
+        }
+
+        /* Glass Panel Styling */
+        .glass-panel {
+            background: rgba(10, 15, 20, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .ai-panel {
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            background: rgba(20, 15, 5, 0.95);
+        }
+
+        .cmd-input:focus { outline: none; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: #004411; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00ff41; }
+
+        /* Typography Utilities */
+        .text-glow { text-shadow: 0 0 10px rgba(0, 255, 65, 0.5); }
+        .typewriter-text {
+            border-right: 2px solid #00ff41;
+            white-space: nowrap;
+            overflow: hidden;
+            display: inline-block;
+            vertical-align: bottom;
+        }
+
+        /* --- DYNAMIC COLOR ANIMATIONS --- */
+        @keyframes cyber-cycle-border {
+            0% { border-left-color: #00ff41; }
+            25% { border-left-color: #00f3ff; }
+            50% { border-left-color: #bd00ff; }
+            75% { border-left-color: #ffd700; }
+            100% { border-left-color: #00ff41; }
+        }
+
+        @keyframes cyber-cycle-text {
+            0% { color: #00ff41; text-shadow: 0 0 10px rgba(0, 255, 65, 0.5); }
+            25% { color: #00f3ff; text-shadow: 0 0 10px rgba(0, 243, 255, 0.5); }
+            50% { color: #bd00ff; text-shadow: 0 0 10px rgba(189, 0, 255, 0.5); }
+            75% { color: #ffd700; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+            100% { color: #00ff41; text-shadow: 0 0 10px rgba(0, 255, 65, 0.5); }
+        }
+
+        @keyframes cyber-cycle-bg {
+            0% { background-color: #00ff41; box-shadow: 0 0 15px rgba(0, 255, 65, 0.4); }
+            25% { background-color: #00f3ff; box-shadow: 0 0 15px rgba(0, 243, 255, 0.4); }
+            50% { background-color: #bd00ff; box-shadow: 0 0 15px rgba(189, 0, 255, 0.4); }
+            75% { background-color: #ffd700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.4); }
+            100% { background-color: #00ff41; box-shadow: 0 0 15px rgba(0, 255, 65, 0.4); }
+        }
+
+        .dynamic-border { animation: cyber-cycle-border 8s infinite linear; }
+        .dynamic-text { animation: cyber-cycle-text 8s infinite linear; }
+        .dynamic-btn { animation: cyber-cycle-bg 8s infinite linear; }
+        
+        /* Preserve hover text color on the button */
+        .dynamic-btn:hover {
+            color: black !important; /* Ensure text stays readable */
+            filter: brightness(1.2); /* Make it pop on hover */
+        }
+    </style>
+</head>
+<body class="font-mono text-sm antialiased">
+
+    <!-- FX Layers -->
+    <div class="scanlines"></div>
+    <div id="canvas-container" class="fixed top-0 left-0 w-full h-full z-0 opacity-30 pointer-events-none"></div>
+
+    <!-- Automation Config Modal (Hidden by default) -->
+    <div id="ai-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="w-full max-w-3xl glass-panel ai-panel rounded-lg shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="p-4 border-b border-term-gold/30 flex justify-between items-center bg-black/50">
+                <div class="flex items-center gap-2 text-term-gold">
+                    <i data-lucide="zap" class="w-5 h-5"></i>
+                    <h3 class="font-tech text-lg">GÉNÉRATEUR DE CONFIGURATION</h3>
+                </div>
+                <button onclick="toggleAIModal()" class="text-gray-400 hover:text-white">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto flex-grow space-y-4">
+                <p class="text-gray-300 text-sm">Décrivez un besoin réseau (ex: "Configuration OSPF single area pour Cisco IOS" ou "Politique de sécurité Fortinet simple"). Le système générera le template.</p>
+                <textarea id="ai-prompt-input" class="w-full h-32 bg-black border border-gray-700 p-4 text-white font-mono focus:border-term-gold focus:ring-1 focus:ring-term-gold outline-none resize-none" placeholder="Décrivez votre besoin d'architecture ou de configuration..."></textarea>
+                
+                <div id="ai-result-area" class="hidden">
+                    <div class="text-xs text-term-gold mb-2">:: SORTIE GÉNÉRÉE ::</div>
+                    <div id="ai-code-output" class="bg-[#0c0c0c] border border-gray-800 p-4 rounded text-xs font-mono text-gray-300 overflow-x-auto whitespace-pre-wrap"></div>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-gray-800 bg-black/50 flex justify-end gap-3">
+                <button onclick="toggleAIModal()" class="px-4 py-2 text-gray-400 hover:text-white text-xs">ANNULER</button>
+                <button onclick="generateConfig()" class="px-6 py-2 bg-term-gold/20 border border-term-gold text-term-gold hover:bg-term-gold hover:text-black transition-colors font-bold text-xs flex items-center gap-2">
+                    <i data-lucide="play" class="w-4 h-4"></i> EXÉCUTER
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MOBILE NAVIGATION -->
+    <div class="md:hidden sticky top-0 z-50 bg-black/95 border-b border-term-green/30 backdrop-blur-xl w-full px-4 py-3 flex justify-between items-center shadow-lg shadow-green-900/10">
+        <div class="flex items-center gap-2 overflow-hidden">
+            <div class="w-2 h-2 rounded-full bg-term-green animate-pulse flex-shrink-0"></div>
+            <div class="flex flex-col">
+                <span class="font-tech text-white text-lg tracking-widest leading-none">A.BOURAS</span>
+                <span id="mobile-typewriter" class="text-[10px] text-term-cyan font-mono h-3 typewriter-text leading-none mt-1"></span>
+            </div>
+        </div>
+        <button onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="text-term-green border border-term-green/30 p-1 rounded hover:bg-term-green/10 flex-shrink-0">
+            <i data-lucide="menu" class="w-6 h-6"></i>
+        </button>
+    </div>
+
+    <!-- MOBILE MENU -->
+    <div id="mobile-menu" class="hidden md:hidden fixed top-14 left-0 w-full bg-term-card border-b border-term-green z-40 p-4 shadow-2xl">
+        <nav class="flex flex-col space-y-4 text-center font-tech text-lg">
+            <a href="#dashboard" onclick="closeMenu()" class="text-gray-300 hover:text-term-green py-2 border-b border-gray-800">DASHBOARD</a>
+            <a href="#terminal-section" onclick="closeMenu()" class="text-gray-300 hover:text-term-green py-2 border-b border-gray-800">TERMINAL</a>
+            <a href="#skills" onclick="closeMenu()" class="text-gray-300 hover:text-term-green py-2 border-b border-gray-800">COMPÉTENCES</a>
+            <a href="#experience" onclick="closeMenu()" class="text-gray-300 hover:text-term-green py-2 border-b border-gray-800">EXPÉRIENCE</a>
+            <button onclick="toggleAIModal(); closeMenu()" class="text-term-gold py-2 border border-term-gold/30 mt-2 bg-term-gold/5">CONFIG TOOL</button>
+        </nav>
+    </div>
+
+    <!-- DESKTOP SIDEBAR -->
+    <aside class="hidden md:flex flex-col fixed top-0 left-0 h-screen w-72 bg-black/95 border-r border-term-green/20 z-50 backdrop-blur-md">
+        <!-- Profile Header -->
+        <div class="p-8 border-b border-term-green/20 flex flex-col items-center text-center">
+            <div class="w-24 h-24 rounded-full p-[2px] border-2 border-term-green mb-4 relative group cursor-pointer overflow-hidden bg-gray-900 shadow-[0_0_15px_rgba(0,255,65,0.2)]">
+                <div class="w-full h-full rounded-full bg-gray-800 flex items-center justify-center text-term-green group-hover:bg-term-green group-hover:text-black transition-colors duration-300">
+                    <span class="text-3xl font-tech font-bold">AB</span>
+                </div>
+            </div>
+            <h1 class="text-2xl font-tech text-white tracking-wider mb-2">A. BOURAS</h1>
+            
+            <!-- Dynamic Tech Ticker -->
+            <div class="h-6 flex items-center justify-center">
+                <span id="desktop-typewriter" class="text-xs text-term-cyan font-mono typewriter-text"></span>
+            </div>
+
+            <div class="mt-4 px-3 py-1 bg-term-green/10 border border-term-green/30 rounded text-[10px] text-term-green font-bold">
+                NET_ARCHITECT :: SEC
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-grow py-6 px-4 space-y-1">
+            <a href="#dashboard" class="flex items-center gap-3 p-3 rounded hover:bg-term-green/10 text-gray-400 hover:text-white hover:pl-5 transition-all group">
+                <i data-lucide="layout-dashboard" class="w-4 h-4 group-hover:text-term-green"></i>
+                <span class="font-tech text-sm">DASHBOARD_VUE</span>
+            </a>
+            <a href="#terminal-section" class="flex items-center gap-3 p-3 rounded hover:bg-term-gold/10 text-gray-400 hover:text-term-gold hover:pl-5 transition-all group">
+                <i data-lucide="terminal" class="w-4 h-4 group-hover:text-term-gold text-term-gold"></i>
+                <span class="font-tech text-sm">TERMINAL_CLI</span>
+            </a>
+            <a href="#skills" class="flex items-center gap-3 p-3 rounded hover:bg-term-green/10 text-gray-400 hover:text-white hover:pl-5 transition-all group">
+                <i data-lucide="cpu" class="w-4 h-4 group-hover:text-term-green"></i>
+                <span class="font-tech text-sm">STACK_TECHNIQUE</span>
+            </a>
+            <a href="#experience" class="flex items-center gap-3 p-3 rounded hover:bg-term-green/10 text-gray-400 hover:text-white hover:pl-5 transition-all group">
+                <i data-lucide="network" class="w-4 h-4 group-hover:text-term-green"></i>
+                <span class="font-tech text-sm">TRACE_ROUTE</span>
+            </a>
+            <a href="#contact" class="flex items-center gap-3 p-3 rounded hover:bg-term-green/10 text-gray-400 hover:text-white hover:pl-5 transition-all group">
+                <i data-lucide="mail" class="w-4 h-4 group-hover:text-term-green"></i>
+                <span class="font-tech text-sm">PING_ME</span>
+            </a>
+            
+            <!-- Automation Tool Button Sidebar -->
+            <button onclick="toggleAIModal()" class="w-full mt-4 flex items-center justify-center gap-2 p-3 border border-term-gold/30 rounded bg-term-gold/5 text-term-gold hover:bg-term-gold/20 transition-all">
+                <i data-lucide="zap" class="w-4 h-4"></i>
+                <span class="font-tech text-xs">GÉNÉRER CONFIG</span>
+            </button>
+        </nav>
+
+        <!-- System Status -->
+        <div class="p-4 border-t border-term-green/20 bg-gray-900/50">
+            <div class="font-mono text-[10px] space-y-2 text-gray-500">
+                <div class="flex justify-between items-center">
+                    <span>SYSTEM_STATUS</span>
+                    <span class="text-term-green flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-term-green animate-pulse"></span> OPTIMAL</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>UPTIME</span>
+                    <span id="uptime" class="text-term-green">00:00:00</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="relative z-10 md:ml-72 p-4 md:p-12 max-w-7xl mx-auto space-y-20">
+
+        <!-- DASHBOARD HERO -->
+        <section id="dashboard" class="pt-4 md:pt-0">
+            <!-- Added class dynamic-border and removed border-l-term-green -->
+            <div class="glass-panel p-6 md:p-10 relative overflow-hidden rounded-sm border-l-4 dynamic-border">
+                <div class="absolute -right-10 -top-10 opacity-10 rotate-12 pointer-events-none">
+                    <i data-lucide="shield-check" class="w-64 h-64 text-white"></i>
+                </div>
+
+                <div class="relative z-10">
+                    <div class="inline-flex items-center gap-2 px-2 py-1 bg-term-cyan/10 border border-term-cyan/30 text-term-cyan text-[10px] font-bold mb-4 tracking-wider">
+                        <span class="w-1.5 h-1.5 bg-term-cyan rounded-full animate-blink"></span>
+                        DISPONIBLE POUR MISSIONS
+                    </div>
+                    
+                    <h1 class="text-3xl md:text-5xl font-tech text-white mb-6 leading-tight">
+                        <span class="text-gray-500 text-xl block mb-2">// PROFILE: SENIOR</span>
+                        ARCHITECTE RÉSEAU <br>
+                        <!-- Added class dynamic-text -->
+                        <span class="dynamic-text">& CYBERSÉCURITÉ</span>
+                    </h1>
+                    
+                    <p class="text-gray-300 md:text-lg max-w-2xl mb-8 leading-relaxed font-light">
+                        Expert en conception et sécurisation d'infrastructures critiques (WAN, DC, Cloud). 
+                        Spécialiste des environnements <span class="text-white font-bold">Nokia, Cisco & Juniper</span>.
+                        Focus sur l'automatisation, le SD-WAN et la résilience des services.
+                    </p>
+
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <!-- Added class dynamic-btn and removed bg-term-green -->
+                        <a href="#contact" class="px-6 py-3 dynamic-btn text-black font-bold font-tech transition-colors flex items-center justify-center gap-2 group">
+                            <i data-lucide="network" class="w-4 h-4 group-hover:rotate-12 transition-transform"></i>
+                            ÉTABLIR SESSION (SYN)
+                        </a>
+                        <button onclick="toggleAIModal()" class="px-6 py-3 border border-term-gold text-term-gold font-tech hover:bg-term-gold hover:text-black transition-colors flex items-center justify-center gap-2 bg-black/50">
+                            <i data-lucide="zap" class="w-4 h-4"></i>
+                            GÉNÉRER CONFIG
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                <div class="glass-panel p-4 flex flex-col items-center justify-center hover:border-term-green transition-colors group">
+                    <span class="text-3xl font-tech text-white group-hover:text-term-green">10+</span>
+                    <span class="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Années Exp.</span>
+                </div>
+                <div class="glass-panel p-4 flex flex-col items-center justify-center hover:border-term-cyan transition-colors group">
+                    <span class="text-3xl font-tech text-white group-hover:text-term-cyan">5</span>
+                    <span class="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Certifications</span>
+                </div>
+                <div class="glass-panel p-4 flex flex-col items-center justify-center hover:border-purple-400 transition-colors group">
+                    <span class="text-3xl font-tech text-white group-hover:text-purple-400">IP</span>
+                    <span class="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Expertise MPLS</span>
+                </div>
+                <div class="glass-panel p-4 flex flex-col items-center justify-center hover:border-term-gold transition-colors group">
+                    <span class="text-3xl font-tech text-white group-hover:text-term-gold animate-pulse">AUTO</span>
+                    <span class="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Automation Ready</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- TERMINAL SECTION (Chatbot Powered) -->
+        <section id="terminal-section" class="scroll-mt-24">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="terminal-square" class="text-term-gold"></i>
+                    <h2 class="text-xl font-tech text-white">INTERFACE DE COMMANDE</h2>
+                </div>
+            </div>
+            
+            <div class="glass-panel rounded-lg overflow-hidden flex flex-col min-h-[500px] shadow-2xl ring-1 ring-gray-800 relative">
+                <!-- Mac-style Header -->
+                <div class="bg-[#1a1a1a] p-3 flex items-center border-b border-gray-800">
+                    <div class="flex gap-2 mr-4">
+                        <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500/80"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
+                    </div>
+                    <div class="text-xs text-gray-500 font-mono flex-grow text-center pr-12">root@bouras-server:~</div>
+                </div>
+
+                <!-- Terminal Output -->
+                <div id="terminal-output" class="flex-grow p-4 font-mono text-sm space-y-2 overflow-y-auto max-h-[500px] bg-black/80">
+                    <div class="text-gray-400">Last login: <span id="login-date"></span> on ttys001</div>
+                    <div class="text-white">Welcome to Abdessamed Bouras Portfolio v6.0.</div>
+                    <div class="text-term-gold">Knowledge Base Connection: ESTABLISHED.</div>
+                    <br>
+                    <div>Type <span class="text-white font-bold bg-gray-800 px-1 rounded">'help'</span> for standard commands.</div>
+                    <div>Type <span class="text-term-gold font-bold bg-term-gold/10 px-1 rounded">'ask &lt;question&gt;'</span> to interact with the assistant.</div>
+                    <div class="text-gray-500 text-xs italic mt-1">Ex: ask Quelle est ton expérience chez Ericsson ?</div>
+                    <br>
+                </div>
+
+                <!-- Loading Indicator (Hidden) -->
+                <div id="terminal-loader" class="hidden absolute bottom-12 left-4 text-term-gold text-xs flex items-center gap-2">
+                    <span class="animate-spin">⠋</span> PROCESSING_QUERY...
+                </div>
+
+                <!-- Input Line -->
+                <div class="p-3 bg-black border-t border-gray-800 flex items-center">
+                    <span class="text-term-green mr-3 font-bold">root@arch:~#</span>
+                    <input type="text" id="cmd-input" class="bg-transparent border-none text-white w-full cmd-input focus:ring-0 p-0" autocomplete="off" spellcheck="false" placeholder="Type 'ask <question>'..." autofocus>
+                </div>
+            </div>
+        </section>
+
+        <!-- SKILLS SECTION -->
+        <section id="skills" class="scroll-mt-24">
+            <h2 class="text-2xl font-tech text-white mb-8 border-b border-gray-800 pb-2">
+                <span class="text-term-cyan">::</span> COMPÉTENCES & STACK
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Routing -->
+                <div class="glass-panel p-6 border-t-2 border-t-term-green hover:bg-term-card transition-colors">
+                    <div class="flex justify-between items-start mb-6">
+                        <h3 class="font-bold text-lg text-white">ROUTING & SWITCHING</h3>
+                        <i data-lucide="router" class="text-term-green"></i>
+                    </div>
+                    <ul class="space-y-4">
+                        <li class="group">
+                            <div class="flex justify-between text-xs mb-1 text-gray-400 group-hover:text-white"><span>BGP (eBGP/iBGP) & MPLS</span> <span>95%</span></div>
+                            <div class="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
+                                <div class="h-full bg-term-green w-[95%] shadow-[0_0_10px_#00ff41]"></div>
+                            </div>
+                        </li>
+                        <li class="group">
+                            <div class="flex justify-between text-xs mb-1 text-gray-400 group-hover:text-white"><span>OSPF / ISIS / EIGRP</span> <span>90%</span></div>
+                            <div class="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
+                                <div class="h-full bg-term-green w-[90%]"></div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Security -->
+                <div class="glass-panel p-6 border-t-2 border-t-term-cyan hover:bg-term-card transition-colors">
+                    <div class="flex justify-between items-start mb-6">
+                        <h3 class="font-bold text-lg text-white">SECURITY & SDN</h3>
+                        <i data-lucide="lock" class="text-term-cyan"></i>
+                    </div>
+                    <ul class="space-y-4">
+                        <li class="group">
+                            <div class="flex justify-between text-xs mb-1 text-gray-400 group-hover:text-white"><span>SD-WAN (Viptela/OmP)</span> <span>85%</span></div>
+                            <div class="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
+                                <div class="h-full bg-term-cyan w-[85%] shadow-[0_0_10px_#00f3ff]"></div>
+                            </div>
+                        </li>
+                        <li class="group">
+                            <div class="flex justify-between text-xs mb-1 text-gray-400 group-hover:text-white"><span>Fortinet / Juniper SRX</span> <span>85%</span></div>
+                            <div class="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
+                                <div class="h-full bg-term-cyan w-[85%]"></div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- EXPERIENCE TIMELINE -->
+        <section id="experience" class="scroll-mt-24">
+            <h2 class="text-2xl font-tech text-white mb-10 border-b border-gray-800 pb-2">
+                <span class="text-purple-400">::</span> TRACE_ROUTE (EXPÉRIENCE)
+            </h2>
+            <div class="relative space-y-12 pl-6 md:pl-0">
+                <div class="hidden md:block absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-term-green/50 via-gray-800 to-transparent -translate-x-1/2"></div>
+                <div class="md:hidden absolute left-2 top-0 bottom-0 w-px bg-gray-800"></div>
+
+                <!-- Job 1: SNCF -->
+                <div class="relative md:flex items-center justify-between group">
+                    <div class="absolute -left-[21px] md:left-1/2 md:-translate-x-1/2 top-0 w-10 h-10 rounded-full bg-black border border-term-green flex items-center justify-center shadow-[0_0_15px_rgba(0,255,65,0.3)] z-10">
+                        <i data-lucide="train" class="w-5 h-5 text-term-green"></i>
+                    </div>
+                    <div class="md:w-[45%] mb-4 md:mb-0 md:text-left">
+                        <div class="glass-panel p-5 border-l-2 md:border-l-0 md:border-r-2 border-term-green/50 group-hover:border-term-green transition-colors">
+                            <h3 class="text-xl font-bold text-white">Architecte Réseau WAN</h3>
+                            <div class="text-term-green font-mono text-xs mb-2">SNCF RÉSEAU | Sep 2021 - Présent</div>
+                            <p class="text-gray-400 text-sm leading-relaxed">
+                            Sizing of network solutions based on TE traffic engineering techniques
+                            Architectural studies of LAN/WAN/DC connectivity solutions.
+                            Study, sizing and integration of software-defined (SDN) solutions in project mode. (SD-WAN, SD-BRENCH, SD-LAN).
+                            Carrying out WAN architecture audits and studying the adaptations to be made to meet the needs of our customers on our Telecom offers.
+                            Drafting of RFI/RFP/CDC requirements.
+                            Framing of requirements with strategy teams.
+                            Drafting of design references and project engineering documents (HLD/LLD).
+                            Technical interventions relating to the integration of service equipment into IP/MPLS networks.
+                            Management of the integration team and handling of customer validation requirements.
+                            Skilled in directly engaging with clients, offering strong negotiation and consulting expertise.</p>
+                        </div>
+                    </div>
+                    <div class="md:w-[45%]"></div>
+                </div>
+
+                <!-- Job 2: BOUYGUES -->
+                <div class="relative md:flex items-center justify-between group">
+                    <div class="absolute -left-[21px] md:left-1/2 md:-translate-x-1/2 top-0 w-10 h-10 rounded-full bg-black border border-term-cyan flex items-center justify-center shadow-[0_0_15px_rgba(0,243,255,0.3)] z-10">
+                        <i data-lucide="signal" class="w-5 h-5 text-term-cyan"></i>
+                    </div>
+                    <div class="md:w-[45%] hidden md:block"></div>
+                    <div class="md:w-[45%] mb-4 md:mb-0">
+                        <div class="glass-panel p-5 border-l-2 border-term-cyan/50 group-hover:border-term-cyan transition-colors">
+                            <h3 class="text-xl font-bold text-white">Ingénieur Réseau IP/MPLS</h3>
+                            <div class="text-term-cyan font-mono text-xs mb-2">BOUYGUES TELECOM | 2019 - 2021</div>
+                            <p class="text-gray-400 text-sm leading-relaxed">
+                                Configuration of VLAN services, DCN supervision, routing (OSPF, ISIS, BGP) and QoS policies.
+                                Traffic analysis, QoS optimization and service monitoring in LAN/MAN/WAN networks.
+                                Configuration of MPLS VPN services L2VPN (e-Pipe,VPWS, VPLS), L3VPN (VPRN, VRF) and IPSEC.
+                                Troubleshooting incidents related to the collection of IP/MPLS backbones (Access/Collection/Core).
+                                Provisioning and flow opening of security and load balancing (Juniper, Fortinet, Cisco ASA, BIG IP).
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Job 3: ERICSSON -->
+                <div class="relative md:flex items-center justify-between group">
+                    <div class="absolute -left-[21px] md:left-1/2 md:-translate-x-1/2 top-0 w-10 h-10 rounded-full bg-black border border-purple-500 flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.3)] z-10">
+                        <i data-lucide="globe" class="w-5 h-5 text-purple-500"></i>
+                    </div>
+                    <div class="md:w-[45%] mb-4 md:mb-0 md:text-left">
+                        <div class="glass-panel p-5 border-l-2 md:border-l-0 md:border-r-2 border-purple-500/50 group-hover:border-purple-500 transition-colors">
+                            <h3 class="text-xl font-bold text-white">Consultant Réseau IP</h3>
+                            <div class="text-purple-500 font-mono text-xs mb-2">ERICSSON MENA | 2014 - 2018</div>
+                            <p class="text-gray-400 text-sm leading-relaxed">
+                                IPRAN (2G/3G/LTE) Mobile backhaul (MBH) integration and migration.
+                                Design of IP/MPLS transport solutions for L2VPN and L3VPN services.
+                                Migration of the existing MBH network to the new architecture based on seamless MPLS, (Inter-AS option C).
+                                Configuration and maintenance of EBGP sessions, Optimization of routing policies
+                                Definition of the IP addressing plan and drafting of engineering documents (HLD/LLD).
+                                Capability to work in an international environment, adaptability and flexibility to changes in a fast-growing organization. 
+                                Skilled in directly engaging with clients, offering strong negotiation and consulting expertise..</p>
+                        </div>
+                    </div>
+                    <div class="md:w-[45%]"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTACT -->
+        <section id="contact" class="pb-20">
+            <div class="glass-panel p-8 text-center max-w-3xl mx-auto">
+                <h2 class="text-2xl font-tech text-white mb-2">ÉTABLIR LA CONNEXION</h2>
+                <div class="h-px w-20 bg-term-green mx-auto mb-6"></div>
+                
+                <!-- Grid layout optimisé pour redirection app -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    <!-- Email (Ouvre l'app Mail par défaut) -->
+                    <a href="mailto:samedbouras@hotmail.fr" class="flex items-center justify-center gap-3 p-4 bg-gray-900 border border-gray-700 hover:border-term-green hover:text-white text-gray-300 transition-all group">
+                        <i data-lucide="mail" class="text-term-green"></i> 
+                        <span>Email</span>
+                    </a>
+                    
+                    <!-- Téléphone (Copie + Redirection Clavier Force) -->
+                    <a href="tel:+33664917397" onclick="copyAndCall(event)" id="phone-btn" class="flex items-center justify-center gap-3 p-4 bg-gray-900 border border-gray-700 hover:border-term-green hover:text-white text-gray-300 transition-all group cursor-pointer">
+                        <i data-lucide="phone" class="text-term-green"></i> 
+                        <span id="phone-text">+33 6 64 91 73 97</span>
+                    </a>
+
+                    <!-- LinkedIn (Ouvre l'App ou le Site) -->
+                    <a href="https://www.linkedin.com/in/abdessamed-bouras-63976513b/" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-3 p-4 bg-gray-900 border border-gray-700 hover:border-[#0077b5] hover:text-white text-gray-300 transition-all group">
+                        <i data-lucide="linkedin" class="text-[#0077b5] group-hover:text-white transition-colors"></i> 
+                        <span>LinkedIn</span>
+                    </a>
+
+                    <!-- WhatsApp (Redirection API directe) -->
+                    <a href="https://wa.me/33664917397" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-3 p-4 bg-gray-900 border border-gray-700 hover:border-[#25D366] hover:text-white text-gray-300 transition-all group">
+                        <i data-lucide="message-circle" class="text-[#25D366] group-hover:text-white transition-colors"></i> 
+                        <span>WhatsApp</span>
+                    </a>
+                </div>
+                
+                <!-- Copyright Footer -->
+                <div class="border-t border-gray-800 pt-6 mt-8">
+                    <p class="text-xs text-gray-500 font-mono">
+                        © 2025 A.BOURAS. Tous droits réservés.
+                    </p>
+                    <p class="text-[10px] text-term-green mt-2 font-mono opacity-80">
+                        &lt; DEVELOPED_BY_ME /&gt; Conçu et codé par Abdessamed Bouras
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- JS Scripts -->
+    <script>
+        lucide.createIcons();
+        document.getElementById('login-date').innerText = new Date().toDateString();
+
+        // -------------------------
+        // TYPEWRITER ANIMATION (Header)
+        // -------------------------
+        const keywords = ["NOKIA", "CISCO", "JUNIPER", "FORTINET", "BGP", "MPLS", "SD-WAN", "IPSEC", "VXLAN", "EVPN",  "5G READY"];
+        const desktopTypewriter = document.getElementById('desktop-typewriter');
+        const mobileTypewriter = document.getElementById('mobile-typewriter');
+        
+        let keywordIndex = 0;
+        let charIndex = 0;
+        let isDeleting = false;
+        let typeSpeed = 100;
+
+        function typeEffect() {
+            const currentWord = keywords[keywordIndex];
+            
+            let displayText = isDeleting 
+                ? currentWord.substring(0, charIndex - 1) 
+                : currentWord.substring(0, charIndex + 1);
+            
+            // Apply text to both headers
+            if(desktopTypewriter) desktopTypewriter.textContent = displayText;
+            if(mobileTypewriter) mobileTypewriter.textContent = displayText;
+
+            if (!isDeleting) charIndex++;
+            else charIndex--;
+
+            // Logic for speed and switching
+            if (!isDeleting && charIndex === currentWord.length) {
+                isDeleting = true;
+                typeSpeed = 1500; // Pause at end
+            } else if (isDeleting && charIndex === 0) {
+                isDeleting = false;
+                keywordIndex = (keywordIndex + 1) % keywords.length;
+                typeSpeed = 200; // Pause before new word
+            } else {
+                typeSpeed = isDeleting ? 50 : 100;
+            }
+
+            setTimeout(typeEffect, typeSpeed);
+        }
+
+        // Start animation
+        document.addEventListener('DOMContentLoaded', typeEffect);
+
+
+        // -------------------------
+        // AUTOMATION INTEGRATION
+        // -------------------------
+        
+        // Données du CV injectées pour le contexte
+        const CV_CONTEXT = `
+            NOM: Abdessamed Bouras
+            TITRE: Architecte Réseau & Cybersécurité Senior
+            EXPÉRIENCE ACTUELLE: Architecte Réseau WAN chez SNCF Réseau (Depuis Sep 2021).
+            MISSIONS SNCF: Dimensionnement TE (CSPF/RSVP/SR), Architecture LAN/WAN/DC (L3VPN, EVPN, VXLAN), Intégration SDN (SD-WAN, SD-BRENCH), Support N3.
+            EXPÉRIENCE PRÉCÉDENTE 1: Ingénieur Réseau IP/MPLS chez Bouygues Telecom (Mars 2019 - Août 2021). Config OSPF, ISIS, BGP, QoS. VPN MPLS. Juniper, Fortinet, Cisco ASA.
+            EXPÉRIENCE PRÉCÉDENTE 2: Consultant Réseau IP chez Ericsson MENA (Sep 2014 - Sep 2018). Mobile Backhaul (2G/3G/LTE), Migration Seamless MPLS.
+            COMPÉTENCES CLÉS: TCP/IP, BGP, L2VPN/L3VPN, MPLS, VXLAN, SDN, SD-WAN, Cisco (ASR, NCS), Nokia (SR 7750), Juniper (MX), Fortinet.
+            LANGUES: Français (Bilingue), Anglais (Courant C1), Arabe.
+            FORMATION: Master 2 Réseaux & Télécoms (Paris-Saclay), Master 2 Télécoms (USTHB Alger).
+            CERTIFICATIONS: Juniper JNCIP-SP, Cisco CCNP ENCOR, Nokia Routing Specialist 1, Fortinet NSE 4.
+        `;
+
+        const apiKey = ""; // API Key handled by environment
+
+        async function callGemini(userPrompt, systemInstruction) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            
+            const payload = {
+                contents: [{ parts: [{ text: userPrompt }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] }
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                return data.candidates?.[0]?.content?.parts?.[0]?.text || "Erreur Service: Pas de réponse.";
+            } catch (error) {
+                console.error("Connection Error:", error);
+                return "Erreur système: Impossible de contacter le module.";
+            }
+        }
+
+        // --- TERMINAL LOGIC (With 'ask' command) ---
+        const terminalOutput = document.getElementById('terminal-output');
+        const cmdInput = document.getElementById('cmd-input');
+        const loader = document.getElementById('terminal-loader');
+
+        const printOutput = (text, isCmd = false, isAI = false) => {
+            const div = document.createElement('div');
+            if(isCmd) {
+                div.innerHTML = `<span class="text-term-green font-bold">root@arch:~#</span> <span class="text-white">${text}</span>`;
+            } else if (isAI) {
+                div.className = "text-gray-300 mt-2 mb-4 p-3 border-l-2 border-term-gold bg-term-gold/5 rounded-r prose prose-invert max-w-none text-sm";
+                div.innerHTML = marked.parse(text); // Parse Markdown
+            } else {
+                div.innerHTML = text;
+            }
+            terminalOutput.appendChild(div);
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        };
+
+        const execute = async (cmd) => {
+            printOutput(cmd, true);
+            const rawCmd = cmd.trim();
+            const lowerCmd = rawCmd.toLowerCase();
+            
+            if(lowerCmd === 'help') {
+                printOutput(`<div class="pl-4 text-gray-400 mt-1 mb-2">
+                    <span class="text-white">whoami</span> - Infos profil<br>
+                    <span class="text-white">skills</span> - Liste technique<br>
+                    <span class="text-term-gold">ask &lt;question&gt;</span> - <span class="text-term-gold">Interroger l'Assistant Virtuel</span><br>
+                    <span class="text-white">clear</span> - Effacer écran
+                </div>`);
+            } 
+            else if(lowerCmd.startsWith('ask ')) {
+                const question = rawCmd.substring(4);
+                if(question.length < 2) {
+                    printOutput(`<span class="text-red-400">Erreur: Veuillez poser une question.</span>`);
+                    return;
+                }
+
+                // Processing
+                loader.classList.remove('hidden');
+                const systemPrompt = `Tu es Abdessamed Bouras. Tu réponds à un recruteur ou un pair technique dans un terminal. Utilise les informations suivantes : ${CV_CONTEXT}. Ton ton est professionnel, technique et concis. Si la question est technique, sois précis. Réponds dans la langue de la question (Français par défaut).`;
+                
+                const answer = await callGemini(question, systemPrompt);
+                loader.classList.add('hidden');
+                printOutput(answer, false, true);
+            }
+            else if(lowerCmd === 'whoami') {
+                printOutput(`<div class="pl-4 text-term-cyan mt-1 mb-2">Abdessamed BOURAS. Architecte Réseau Senior.</div>`);
+            } else if(lowerCmd === 'skills') {
+                printOutput(`<div class="pl-4 text-term-green mt-1 mb-2">Nokia, Cisco, Juniper, Fortinet, BGP, MPLS, SD-WAN.</div>`);
+            } else if(lowerCmd === 'clear') {
+                terminalOutput.innerHTML = '';
+            } else if(lowerCmd !== '') {
+                printOutput(`<div class="text-red-400 mt-1 mb-2">Commande inconnue. Essayez 'ask <question>' pour utiliser l'assistant.</div>`);
+            }
+        };
+
+        cmdInput.addEventListener('keydown', (e) => {
+            if(e.key === 'Enter') {
+                execute(cmdInput.value);
+                cmdInput.value = '';
+            }
+        });
+
+        // --- CONFIG GENERATOR MODAL LOGIC ---
+        function toggleAIModal() {
+            const modal = document.getElementById('ai-modal');
+            modal.classList.toggle('hidden');
+        }
+        
+        function closeMenu() {
+            document.getElementById('mobile-menu').classList.add('hidden');
+        }
+
+        // Fonction optimisée : Copie visuelle + Redirection forcée vers le dialer
+        function copyAndCall(e) {
+            e.preventDefault(); // On prend le contrôle total du clic
+            
+            const phoneNumber = "+33664917397";
+            const telLink = "tel:+33664917397";
+            const btn = document.getElementById('phone-btn');
+            const textSpan = document.getElementById('phone-text');
+            const originalText = "+33 6 64 91 73 97";
+
+            // 1. Tentative de copie
+            const textArea = document.createElement("textarea");
+            textArea.value = phoneNumber;
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                document.execCommand('copy');
+                // Feedback visuel rapide
+                textSpan.innerText = "Copié & Composition...";
+                textSpan.classList.add("text-term-green", "font-bold");
+                btn.classList.add("border-term-green");
+            } catch (err) {
+                console.error('Erreur copie', err);
+            }
+            document.body.removeChild(textArea);
+
+            // 2. Redirection forcée vers l'application téléphone
+            setTimeout(() => {
+                window.location.href = telLink;
+                
+                // Reset visuel après redirection
+                setTimeout(() => {
+                    textSpan.innerText = originalText;
+                    textSpan.classList.remove("text-term-green", "font-bold");
+                    btn.classList.remove("border-term-green");
+                }, 1000);
+            }, 300); // Petit délai pour laisser le temps à l'utilisateur de voir "Copié"
+        }
+
+        async function generateConfig() {
+            const promptInput = document.getElementById('ai-prompt-input');
+            const outputArea = document.getElementById('ai-result-area');
+            const codeOutput = document.getElementById('ai-code-output');
+            
+            const userRequest = promptInput.value;
+            if(!userRequest) return;
+
+            outputArea.classList.remove('hidden');
+            codeOutput.innerText = "Génération de la configuration en cours...";
+            
+            const systemPrompt = "Tu es un assistant expert en configuration réseau (Cisco, Juniper, Nokia, Fortinet). Génère uniquement le code de configuration demandé par l'utilisateur. Ajoute des commentaires brefs. Si le vendeur n'est pas spécifié, fournis du Cisco IOS par défaut. Formatte la réponse proprement.";
+
+            const result = await callGemini(userRequest, systemPrompt);
+            codeOutput.innerText = result;
+        }
+
+        // --- VISUALS ---
+        const initGlobe = () => {
+            const container = document.getElementById('canvas-container');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+            const geometry = new THREE.IcosahedronGeometry(12, 1);
+            const material = new THREE.MeshBasicMaterial({ color: 0x003300, wireframe: true, transparent: true, opacity: 0.1 });
+            const sphere = new THREE.Mesh(geometry, material);
+            scene.add(sphere);
+            const pGeo = new THREE.BufferGeometry();
+            const pCount = 150;
+            const pPos = new Float32Array(pCount * 3);
+            for(let i=0; i<pCount*3; i++) pPos[i] = (Math.random()-0.5) * 40;
+            pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+            const pMat = new THREE.PointsMaterial({ size: 0.15, color: 0x00ff41, transparent: true, opacity: 0.4 });
+            const particles = new THREE.Points(pGeo, pMat);
+            scene.add(particles);
+            camera.position.z = 20;
+            const animate = () => {
+                requestAnimationFrame(animate);
+                sphere.rotation.y += 0.001;
+                particles.rotation.y -= 0.0005;
+                renderer.render(scene, camera);
+            };
+            animate();
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        };
+        initGlobe();
+
+        // Uptime
+        let seconds = 0;
+        setInterval(() => {
+            seconds++;
+            const h = Math.floor(seconds / 3600).toString().padStart(2,'0');
+            const m = Math.floor((seconds % 3600) / 60).toString().padStart(2,'0');
+            const s = (seconds % 60).toString().padStart(2,'0');
+            document.getElementById('uptime').innerText = `${h}:${m}:${s}`;
+        }, 1000);
+    </script>
+</body>
+</html>
